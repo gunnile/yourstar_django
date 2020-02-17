@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Star, Event, ScoreName, EventStarList, StarScores, StarType
+from .models import Star, Event, ScoreName, EventStarList, StarScores, StarType, Evaluation
 
 
 class StarAdmin(admin.ModelAdmin):
@@ -30,8 +30,8 @@ class EventStarListAdmin(admin.ModelAdmin):
 
 class StarScoresAdmin(admin.ModelAdmin):
     list_display = ['id', 'score', 'score_name', 'star']
-    list_filter = ('star_id',)
-    search_fields = ['star_id']
+    list_filter = ('score_name',)
+    search_fields = ['score_name']
 
 
 class StarTypeAdmin(admin.ModelAdmin):
@@ -46,12 +46,19 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ['username']
 
 
+class EvaluationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'star_score', 'star', 'feed']
+    list_filter = ('star',)
+    search_fields = ['star']
+
+
 admin.site.register(Star, StarAdmin)
 admin.site.register(Event, EventAdmin)
 admin.site.register(EventStarList, EventStarListAdmin)
 admin.site.register(ScoreName, ScoreNameAdmin)
 admin.site.register(StarScores, StarScoresAdmin)
 admin.site.register(StarType, StarTypeAdmin)
+admin.site.register(Evaluation, EvaluationAdmin)
 # admin.site.register(User, UserAdmin)
 
 
