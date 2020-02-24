@@ -1,17 +1,18 @@
-from django.contrib.auth.models import User
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend, filters
+from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope
 from rest_framework import permissions, generics
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Sum
 
-from yourstar.models import Star, Event, ScoreName, EventStarList, StarScores, StarType, Evaluation
+from yourstar.models import Star, Event, ScoreName, EventStarList, StarScores, StarType, Evaluation, YourUser
 from yourstar.permissions import IsAuthenticatedOrCreate
 from yourstar.serializers import ScoreNameSerializer, EventStarSerializer, StarScoresSerializer, \
     EventDetailSerializer, StarDetailSerializer, UserSerializer, SignUpSerializer, TypeSerializer, EvaluationSerializer, \
-    StarScoresIdSerializer
+    StarScoresIdSerializer, YourUserSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -45,14 +46,25 @@ class ScoreNameViewSet(viewsets.ReadOnlyModelViewSet):
 class EvaluationViewSet(viewsets.ModelViewSet):
     queryset = Evaluation.objects.all()
     serializer_class = EvaluationSerializer
+    permission_classes = [IsAuthenticated]
 
     # filter_backends = [DjangoFilterBackend]
     # filter_fields = ['star']
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
     @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
     def highlight(self, request, *args, **kwargs):
         evaluation = self.get_object()
         return Response(evaluation.highlighted)
+
+    def get_queryset(self):
+        queryset = Evaluation.objects.all()
+        user_id = self.request.query_params.get('user', None)
+        if user_id is not None:
+            queryset = queryset.filter(user__id=user_id)
+        return queryset
 
 
 class StarScoresViewSet(viewsets.ModelViewSet):
@@ -89,12 +101,23 @@ class TypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TypeSerializer
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class YourUserViewSet(viewsets.ModelViewSet):
+    queryset = YourUser.objects.all()
+    serializer_class = YourUserSerializer
+    permission_classes = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['username']
+
+    def get_queryset(self):
+        queryset = YourUser.objects.all()
+        username = self.request.query_params.get('username', None)
+        if username is not None:
+            queryset = queryset.filter(username=username)
+        return queryset
 
 
 class SignUp(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = YourUser.objects.all()
     serializer_class = SignUpSerializer
     # permission_classes = (IsAuthenticatedOrCreate,)
